@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>কমলগঞ্জ প্রতিদিন</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+<img src="logo.jpg" alt="কমলগঞ্জ প্রতিদিন লোগো" style="max-height:100px;">
+<h1>কমলগঞ্জ প্রতিদিন</h1>
+<p>কামালগঞ্জ উপজেলার স্থানীয় সংবাদ</p>
+<p>Email: kamalgonjprotidin@gmail.com</p>
+</header>
+
+<div class="ticker"><strong>ব্রেকিং নিউজ:</strong> <span id="breaking">লোড হচ্ছে...</span></div>
+
+<script>
+fetch('breaking-news.txt')
+.then(r=>r.text())
+.then(t=>document.getElementById('breaking').textContent=t)
+.catch(()=>document.getElementById('breaking').textContent='সর্বশেষ সংবাদ এখানে দেখানো হবে');
+</script>
+
+<section class="categories">
+<div class="card">
+<h2>স্থানীয় সংবাদ</h2>
+<p>কামালগঞ্জ উপজেলার সর্বশেষ স্থানীয় সংবাদ প্রকাশ করুন।</p>
+</div>
+<div class="card">
+<h2>রাজনীতি</h2>
+<p>দেশ ও উপজেলা রাজনীতি সংক্রান্ত সংবাদ এখানে প্রকাশ করুন।</p>
+</div>
+<div class="card">
+<h2>খেলাধুলা</h2>
+<p>খেলাধুলা ও কমলগঞ্জ স্পোর্টস সংক্রান্ত সংবাদ।</p>
+</div>
+<div class="card">
+<h2>বিনোদন</h2>
+<p>বিনোদন সংক্রান্ত খবর এবং আপডেট।</p>
+</div>
+<div class="card">
+<h2>শিক্ষা</h2>
+<p>কামালগঞ্জের শিক্ষা খবর এবং শিক্ষাপ্রতিষ্ঠান আপডেট।</p>
+</div>
+</section>
+
+<footer>
+<p>© Kamalgonj Protidin | Email: kamalgonjprotidin@gmail.com</p>
+</footer>
+
+</body>
+</html>
