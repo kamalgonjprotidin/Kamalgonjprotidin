@@ -15,11 +15,12 @@ body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5}
 .featured-news,.card{background:#fff;margin:10px;padding:10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.1)}
 .featured-img,.news-image{width:100%;border-radius:8px}
 footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20px}
+.status{padding:6px;text-align:center;font-size:12px;color:#666}
 </style>
 </head>
 <body>
+
 <header class="top-header">
-<img src="logo.jpg" alt="কমলগঞ্জ প্রতিদিন" class="logo">
 <div class="headline-banner">কামালগঞ্জ উপজেলার সর্বশেষ স্থানীয় সংবাদ</div>
 </header>
 
@@ -29,6 +30,7 @@ footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20p
 </nav>
 
 <div class="ticker"><span id="breaking">লোড হচ্ছে...</span></div>
+<div class="status" id="status">সংবাদ লোড হচ্ছে...</div>
 
 <section id="featured-news" class="featured-news">
 <p>প্রধান সংবাদ লোড হচ্ছে...</p>
@@ -37,52 +39,81 @@ footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20p
 <h2 style="padding:10px">সর্বশেষ সংবাদ</h2>
 <div id="news-container"></div>
 
-<footer><p>© Kamalgonj Protidin | kamalgonjprotidin@gmail.com</p></footer>
+<footer><p>© Kamalgonj Protidin</p></footer>
 
 <script>
+const SHEET_URL='https://script.google.com/macros/s/AKfycbz_ysTtXX6XjtLY2NgqvECQcPlls4ndzuNu_IhbjWQbYRnlnTxXV98M72vyLA8pE8So8Q/exec';
+
 function fixDrive(url){
  if(!url) return "";
- const match = url.match(/[-\w]{25,}/);
- if(url.includes("drive.google.com") && match){
-   return "https://drive.google.com/thumbnail?id=" + match[0] + "&sz=w1200";
+ const m=url.match(/[-\\w]{25,}/);
+ if(url.includes("drive.google.com") && m){
+   return "https://drive.google.com/uc?export=view&id="+m[0];
  }
  return url;
 }
 
-fetch('breaking-news.txt')
-.then(r=>r.text())
-.then(t=>{
- document.getElementById('breaking').textContent=t;
-});
+function renderNews(news){
+ if(!news || !news.length) return;
 
-const SHEET_URL='https://script.google.com/macros/s/AKfycbz_ysTtXX6XjtLY2NgqvECQcPlls4ndzuNu_IhbjWQbYRnlnTxXV98M72vyLA8pE8So8Q/exec';
-
-fetch(SHEET_URL)
-.then(r=>r.json())
-.then(news=>{
-
- let featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
+ const featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
 
  if(featured){
  document.getElementById('featured-news').innerHTML =
  `<img src="${fixDrive(featured['Image URL'])}" class="featured-img">
- <h2>${featured.Title}</h2>
- <p>${featured['News Content']}</p>`;
+ <h2>${featured.Title||''}</h2>
+ <p>${featured['News Content']||''}</p>`;
  }
 
  let html='';
-
- news.reverse().forEach(item=>{
+ [...news].reverse().forEach(item=>{
  html += `<div class="card">
  <img src="${fixDrive(item['Image URL'])}" class="news-image">
- <h3>${item.Title}</h3>
- <p><b>${item.Category}</b> | ${item.Date}</p>
- <p>${item['News Content']}</p>
+ <h3>${item.Title||''}</h3>
+ <p><b>${item.Category||''}</b> | ${item.Date||''}</p>
+ <p>${item['News Content']||''}</p>
  </div>`;
  });
 
  document.getElementById('news-container').innerHTML = html;
-});
+}
+
+fetch('breaking-news.txt')
+.then(r=>r.text())
+.then(t=> document.getElementById('breaking').textContent=t)
+.catch(()=>{});
+
+// Load cached news instantly
+const cached = localStorage.getItem("kamalgonj_news_cache");
+if(cached){
+ try{
+   renderNews(JSON.parse(cached));
+   document.getElementById("status").textContent="ক্যাশ থেকে সংবাদ দেখানো হচ্ছে";
+ }catch(e){}
+}
+
+// Fetch fresh news with retries
+async function loadNews(){
+ for(let i=1;i<=5;i++){
+   try{
+     const res = await fetch(SHEET_URL + "?t=" + Date.now());
+     const news = await res.json();
+
+     if(news && news.length){
+       localStorage.setItem("kamalgonj_news_cache", JSON.stringify(news));
+       renderNews(news);
+       document.getElementById("status").textContent="সর্বশেষ সংবাদ আপডেট হয়েছে";
+       return;
+     }
+   }catch(e){}
+
+   await new Promise(r=>setTimeout(r,1500));
+ }
+
+ document.getElementById("status").textContent="ইন্টারনেট সমস্যা। সংরক্ষিত সংবাদ দেখানো হচ্ছে।";
+}
+
+loadNews();
 </script>
 </body>
 </html>
