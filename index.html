@@ -10,110 +10,81 @@ body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5}
 .logo{max-width:120px}
 .headline-banner{background:#d50000;color:#fff;padding:10px;font-weight:bold}
 .nav-menu{display:flex;flex-wrap:wrap;justify-content:center;background:#222}
-.nav-menu a{color:white;text-decoration:none;padding:12px}
+.nav-menu a{color:white;text-decoration:none;padding:12px;cursor:pointer}
+.nav-menu a.active{background:#444}
 .ticker{background:#ffeb3b;padding:10px;font-weight:bold}
-.featured-news,.card{background:#fff;margin:10px;padding:10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.1)}
+.card,.featured-news{background:#fff;margin:10px;padding:10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.1)}
 .featured-img,.news-image{width:100%;border-radius:8px}
 footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20px}
-.status{padding:6px;text-align:center;font-size:12px;color:#666}
 </style>
 </head>
 <body>
-
 <header class="top-header">
 <div class="headline-banner">কামালগঞ্জ উপজেলার সর্বশেষ স্থানীয় সংবাদ</div>
 </header>
 
 <nav class="nav-menu">
-<a href="#">হোম</a><a href="#">জাতীয়</a><a href="#">রাজনীতি</a>
-<a href="#">স্থানীয়</a><a href="#">খেলাধুলা</a><a href="#">বিনোদন</a>
+<a onclick="filterNews('all')" class="active">হোম</a>
+<a onclick="filterNews('জাতীয়')">জাতীয়</a>
+<a onclick="filterNews('রাজনীতি')">রাজনীতি</a>
+<a onclick="filterNews('স্থানীয়')">স্থানীয়</a>
+<a onclick="filterNews('খেলাধুলা')">খেলাধুলা</a>
+<a onclick="filterNews('বিনোদন')">বিনোদন</a>
 </nav>
 
 <div class="ticker"><span id="breaking">লোড হচ্ছে...</span></div>
-<div class="status" id="status">সংবাদ লোড হচ্ছে...</div>
-
-<section id="featured-news" class="featured-news">
-<p>প্রধান সংবাদ লোড হচ্ছে...</p>
-</section>
-
+<section id="featured-news" class="featured-news"><p>প্রধান সংবাদ লোড হচ্ছে...</p></section>
 <h2 style="padding:10px">সর্বশেষ সংবাদ</h2>
 <div id="news-container"></div>
 
-<footer><p>© Kamalgonj Protidin</p></footer>
-
 <script>
+let allNews=[];
+
+function renderNews(items){
+ let html='';
+ items.forEach(item=>{
+   html += `<div class="card">
+      <img src="${item['Image URL']||''}" class="news-image">
+      <h3>${item.Title||''}</h3>
+      <p><b>${item.Category||''}</b> | ${item.Date||''}</p>
+      <p>${item['News Content']||''}</p>
+   </div>`;
+ });
+ document.getElementById('news-container').innerHTML = html || '<p style="padding:10px">কোন সংবাদ পাওয়া যায়নি।</p>';
+}
+
+function filterNews(category){
+ document.querySelectorAll('.nav-menu a').forEach(a=>a.classList.remove('active'));
+ event.target.classList.add('active');
+
+ if(category==='all'){
+   renderNews(allNews);
+ } else {
+   renderNews(allNews.filter(n => String(n.Category||'').trim()===category));
+ }
+}
+
+fetch('breaking-news.txt').then(r=>r.text()).then(t=>{
+ document.getElementById('breaking').textContent=t;
+}).catch(()=>{});
+
 const SHEET_URL='https://script.google.com/macros/s/AKfycbz_ysTtXX6XjtLY2NgqvECQcPlls4ndzuNu_IhbjWQbYRnlnTxXV98M72vyLA8pE8So8Q/exec';
 
-function fixDrive(url){
- if(!url) return "";
- const m=url.match(/[-\\w]{25,}/);
- if(url.includes("drive.google.com") && m){
-   return "https://drive.google.com/uc?export=view&id="+m[0];
- }
- return url;
-}
+fetch(SHEET_URL)
+.then(r=>r.json())
+.then(news=>{
+ allNews=[...news].reverse();
 
-function renderNews(news){
- if(!news || !news.length) return;
-
- const featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
-
+ let featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
  if(featured){
- document.getElementById('featured-news').innerHTML =
- `<img src="${fixDrive(featured['Image URL'])}" class="featured-img">
- <h2>${featured.Title||''}</h2>
- <p>${featured['News Content']||''}</p>`;
+   document.getElementById('featured-news').innerHTML =
+   `<img src="${featured['Image URL']}" class="featured-img">
+    <h2>${featured.Title}</h2>
+    <p>${featured['News Content']}</p>`;
  }
 
- let html='';
- [...news].reverse().forEach(item=>{
- html += `<div class="card">
- <img src="${fixDrive(item['Image URL'])}" class="news-image">
- <h3>${item.Title||''}</h3>
- <p><b>${item.Category||''}</b> | ${item.Date||''}</p>
- <p>${item['News Content']||''}</p>
- </div>`;
- });
-
- document.getElementById('news-container').innerHTML = html;
-}
-
-fetch('breaking-news.txt')
-.then(r=>r.text())
-.then(t=> document.getElementById('breaking').textContent=t)
-.catch(()=>{});
-
-// Load cached news instantly
-const cached = localStorage.getItem("kamalgonj_news_cache");
-if(cached){
- try{
-   renderNews(JSON.parse(cached));
-   document.getElementById("status").textContent="ক্যাশ থেকে সংবাদ দেখানো হচ্ছে";
- }catch(e){}
-}
-
-// Fetch fresh news with retries
-async function loadNews(){
- for(let i=1;i<=5;i++){
-   try{
-     const res = await fetch(SHEET_URL + "?t=" + Date.now());
-     const news = await res.json();
-
-     if(news && news.length){
-       localStorage.setItem("kamalgonj_news_cache", JSON.stringify(news));
-       renderNews(news);
-       document.getElementById("status").textContent="সর্বশেষ সংবাদ আপডেট হয়েছে";
-       return;
-     }
-   }catch(e){}
-
-   await new Promise(r=>setTimeout(r,1500));
- }
-
- document.getElementById("status").textContent="ইন্টারনেট সমস্যা। সংরক্ষিত সংবাদ দেখানো হচ্ছে।";
-}
-
-loadNews();
+ renderNews(allNews);
+});
 </script>
 </body>
 </html>
