@@ -1,52 +1,104 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>কমলগঞ্জ প্রতিদিন</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kamalgonj Protidin</title>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5}
-.top-header{text-align:center;background:#fff;padding:10px}
-.logo{max-width:120px}
-.headline-banner{background:#d50000;color:#fff;padding:10px;font-weight:bold}
-.nav-menu{display:flex;flex-wrap:wrap;justify-content:center;background:#222}
-.nav-menu a{color:white;text-decoration:none;padding:12px}
-.ticker{background:#ffeb3b;padding:10px;font-weight:bold}
-.featured-news,.card{background:#fff;margin:10px;padding:10px;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.1)}
-.featured-img,.news-image{width:100%;border-radius:8px}
-footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20px}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4}
+header{background:#b30000;color:#fff;padding:15px;text-align:center}
+#ticker{background:#111;color:#fff;padding:8px;white-space:nowrap;overflow:hidden}
+#ticker span{display:inline-block;padding-left:100%;animation:scroll 25s linear infinite}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+.controls{padding:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+input,select{padding:8px}
+#featured,#news{padding:15px}
+.slider{display:flex;overflow:auto;gap:12px}
+.card,.feature{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.feature{min-width:320px}
+.card img,.feature img{width:100%;display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}
+.content{padding:10px}
+.small{color:#666;font-size:.9em}
 </style>
 </head>
 <body>
-<header class="top-header">
-<img src="logo.jpg" alt="কমলগঞ্জ প্রতিদিন" class="logo">
-<div class="headline-banner">কামালগঞ্জ উপজেলার সর্বশেষ স্থানীয় সংবাদ</div>
-</header>
-<nav class="nav-menu">
-<a href="#">হোম</a><a href="#">জাতীয়</a><a href="#">রাজনীতি</a>
-<a href="#">স্থানীয়</a><a href="#">খেলাধুলা</a><a href="#">বিনোদন</a>
-</nav>
-<div class="ticker"><span id="breaking">লোড হচ্ছে...</span></div>
-<section id="featured-news" class="featured-news"><p>প্রধান সংবাদ লোড হচ্ছে...</p></section>
-<h2 style="padding:10px">সর্বশেষ সংবাদ</h2>
-<div id="news-container"></div>
-<footer><p>© Kamalgonj Protidin | kamalgonjprotidin@gmail.com</p></footer>
+<header><h1>Kamalgonj Protidin</h1></header>
+<div id="ticker"><span>Loading latest news...</span></div>
+
+<div class="controls">
+<input id="search" placeholder="Search news">
+<select id="category"><option value="all">All Categories</option></select>
+</div>
+
+<div id="featured"><div class="slider" id="slider"></div></div>
+<div id="news" class="grid"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tabletop@1.6.0/tabletop.min.js"></script>
 <script>
-fetch('breaking-news.txt').then(r=>r.text()).then(t=>{
-document.getElementById('breaking').textContent=t;
-});
-const SHEET_URL='https://script.google.com/macros/s/AKfycbz_ysTtXX6XjtLY2NgqvECQcPlls4ndzuNu_IhbjWQbYRnlnTxXV98M72vyLA8pE8So8Q/exec';
-fetch(SHEET_URL).then(r=>r.json()).then(news=>{
-let featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
-if(featured){
-document.getElementById('featured-news').innerHTML=`<img src="${featured['Image URL']}" class="featured-img"><h2>${featured.Title}</h2><p>${featured['News Content']}</p>`;
+const SHEET="https://docs.google.com/spreadsheets/d/e/2PACX-1vTgpH3CTpa4PlF3ggiaObN_YiLHjWHpNhFFTatbeeZiDz7EO19JJzBqBIUq919SNVjeAwyZYHaFMwGg/pubhtml";
+let allNews=[];
+
+function fixDrive(url){
+ if(!url) return "https://via.placeholder.com/800x450?text=No+Image";
+ const m=url.match(/[-\w]{25,}/);
+ if(url.includes("drive.google.com") && m){
+   return "https://drive.google.com/thumbnail?id="+m[0]+"&sz=w1200";
+ }
+ return url;
 }
-let html='';
-news.reverse().forEach(item=>{
-html+=`<div class="card"><img src="${item['Image URL']}" class="news-image"><h3>${item.Title}</h3><p><b>${item.Category}</b> | ${item.Date}</p><p>${item['News Content']}</p></div>`;
+
+Tabletop.init({
+ key:SHEET,
+ simpleSheet:true,
+ callback:(data)=>{
+   allNews=data;
+   buildCategories();
+   render(data);
+ }
 });
-document.getElementById('news-container').innerHTML=html;
-});
+
+function buildCategories(){
+ const sel=document.getElementById("category");
+ [...new Set(allNews.map(x=>x.Category).filter(Boolean))].forEach(c=>{
+   let o=document.createElement("option");
+   o.value=c;o.textContent=c;sel.appendChild(o);
+ });
+}
+
+function render(items){
+ document.getElementById("ticker").innerHTML="<span>"+items.slice(0,5).map(x=>x.Title).join(" ♦ ")+"</span>";
+
+ const featured=items.filter(x=>String(x.Featured).toLowerCase()=="yes");
+ document.getElementById("slider").innerHTML=featured.map(n=>`
+ <div class="feature">
+  <img src="${fixDrive(n['Image URL'])}" onerror="this.src='https://via.placeholder.com/800x450?text=Image+Error'">
+  <div class="content"><h3>${n.Title||''}</h3></div>
+ </div>`).join("");
+
+ document.getElementById("news").innerHTML=items.map(n=>`
+ <div class="card">
+  <img src="${fixDrive(n['Image URL'])}" onerror="this.src='https://via.placeholder.com/800x450?text=Image+Error'">
+  <div class="content">
+   <h3>${n.Title||''}</h3>
+   <p>${n['News Content']||''}</p>
+   <div class="small">${n.Category||''} | ${n.Date||''}</div>
+  </div>
+ </div>`).join("");
+}
+
+function filter(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const c=document.getElementById("category").value;
+ const f=allNews.filter(n=>{
+   const t=(n.Title||"").toLowerCase();
+   const b=(n["News Content"]||"").toLowerCase();
+   return (t.includes(q)||b.includes(q)) && (c==="all"||n.Category===c);
+ });
+ render(f);
+}
+document.getElementById("search").addEventListener("input",filter);
+document.getElementById("category").addEventListener("change",filter);
 </script>
 </body>
 </html>
