@@ -7,7 +7,7 @@
 <style>
 body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5}
 .top-header{text-align:center;background:#fff;padding:10px}
-.logo{max-width:120px}
+.logo{max-width:220px}
 .headline-banner{background:#d50000;color:#fff;padding:10px;font-weight:bold}
 .nav-menu{display:flex;flex-wrap:wrap;justify-content:center;background:#222}
 .nav-menu a{color:white;text-decoration:none;padding:12px;cursor:pointer}
@@ -19,7 +19,9 @@ footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20p
 </style>
 </head>
 <body>
+
 <header class="top-header">
+<img src="logo.jpg" alt="কমলগঞ্জ প্রতিদিন" class="logo">
 <div class="headline-banner">কামালগঞ্জ উপজেলার সর্বশেষ স্থানীয় সংবাদ</div>
 </header>
 
@@ -36,6 +38,8 @@ footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20p
 <section id="featured-news" class="featured-news"><p>প্রধান সংবাদ লোড হচ্ছে...</p></section>
 <h2 style="padding:10px">সর্বশেষ সংবাদ</h2>
 <div id="news-container"></div>
+
+<footer><p>© Kamalgonj Protidin</p></footer>
 
 <script>
 let allNews=[];
@@ -55,18 +59,15 @@ function renderNews(items){
 
 function filterNews(category){
  document.querySelectorAll('.nav-menu a').forEach(a=>a.classList.remove('active'));
- event.target.classList.add('active');
-
- if(category==='all'){
-   renderNews(allNews);
- } else {
-   renderNews(allNews.filter(n => String(n.Category||'').trim()===category));
- }
+ if(event && event.target) event.target.classList.add('active');
+ if(category==='all'){ renderNews(allNews); return; }
+ renderNews(allNews.filter(n => String(n.Category||'').trim()===category));
 }
 
-fetch('breaking-news.txt').then(r=>r.text()).then(t=>{
- document.getElementById('breaking').textContent=t;
-}).catch(()=>{});
+fetch('breaking-news.txt')
+.then(r=>r.text())
+.then(t=>document.getElementById('breaking').textContent=t)
+.catch(()=>{});
 
 const SHEET_URL='https://script.google.com/macros/s/AKfycbz_ysTtXX6XjtLY2NgqvECQcPlls4ndzuNu_IhbjWQbYRnlnTxXV98M72vyLA8pE8So8Q/exec';
 
@@ -75,7 +76,7 @@ fetch(SHEET_URL)
 .then(news=>{
  allNews=[...news].reverse();
 
- let featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
+ const featured=news.find(i=>String(i.Featured).toLowerCase()==='yes');
  if(featured){
    document.getElementById('featured-news').innerHTML =
    `<img src="${featured['Image URL']}" class="featured-img">
@@ -84,6 +85,9 @@ fetch(SHEET_URL)
  }
 
  renderNews(allNews);
+})
+.catch(err=>{
+ document.getElementById('news-container').innerHTML='<p style="padding:10px">সংবাদ লোড করা যায়নি।</p>';
 });
 </script>
 </body>
