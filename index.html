@@ -44,7 +44,23 @@ footer{background:#222;color:white;text-align:center;padding:15px;margin-top:20p
 <script>
 let allNews=[];
 
+
 function formatBDTime(dateStr){
+ try{
+   const d = new Date(dateStr);
+   if(isNaN(d)) return dateStr || '';
+   const optionsDate = { year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Dhaka' };
+   const optionsTime = { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'Asia/Dhaka' };
+   const datePart = d.toLocaleDateString('bn-BD', optionsDate);
+   const timePart = d.toLocaleTimeString('bn-BD', optionsTime);
+   const meridiem = timePart.includes('পূর্বাহ্ন') ? 'সকাল' : 'বিকেল';
+   const hourMinute = timePart.replace(/[^০-৯:]/g, '').trim();
+   return datePart + ' | ' + meridiem + ' ' + hourMinute;
+ }catch(e){
+   return dateStr || '';
+ }
+}
+
  try{
    const d = new Date(dateStr);
    if(isNaN(d)) return dateStr || '';
